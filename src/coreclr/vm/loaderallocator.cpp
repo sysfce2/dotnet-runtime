@@ -595,8 +595,9 @@ void LoaderAllocator::GCLoaderAllocators(LoaderAllocator* pOriginalLoaderAllocat
                         // is inappropriate, we can introduce a new flag or hijack an unused one.
             ThreadSuspend::SuspendEE(ThreadSuspend::SUSPEND_FOR_APPDOMAIN_SHUTDOWN);
 
-            // drop the cast cache while still in COOP mode.
+            // drop the cast and virtual resolution caches while still in COOP mode.
             CastCache::FlushCurrentCache();
+            FlushVirtualFunctionPointerCaches();
         }
 
         ExecutionManager::Unload(pDomainLoaderAllocatorDestroyIterator);
@@ -604,7 +605,6 @@ void LoaderAllocator::GCLoaderAllocators(LoaderAllocator* pOriginalLoaderAllocat
 
         // TODO: Do we really want to perform this on each LoaderAllocator?
         MethodTable::ClearMethodDataCache();
-        ClearJitGenericHandleCache();
 
         if (!IsAtProcessExit())
         {
@@ -1704,13 +1704,13 @@ BOOL AssemblyLoaderAllocator::CanUnload()
 DomainAssemblyIterator::DomainAssemblyIterator(DomainAssembly* pFirstAssembly)
 {
     pCurrentAssembly = pFirstAssembly;
-    pNextAssembly = pCurrentAssembly ? pCurrentAssembly->GetNextDomainAssemblyInSameALC() : NULL;
+    pNextAssembly = pCurrentAssembly ? pCurrentAssembly->GetAssembly()->GetNextAssemblyInSameALC() : NULL;
 }
 
 void DomainAssemblyIterator::operator++()
 {
     pCurrentAssembly = pNextAssembly;
-    pNextAssembly = pCurrentAssembly ? pCurrentAssembly->GetNextDomainAssemblyInSameALC() : NULL;
+    pNextAssembly = pCurrentAssembly ? pCurrentAssembly->GetAssembly()->GetNextAssemblyInSameALC() : NULL;
 }
 
 #ifndef DACCESS_COMPILE
